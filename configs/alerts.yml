@@ -1,0 +1,75 @@
+# Prometheus alerting rules
+
+groups:
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(route_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/sec"
+
+      # Service down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 2 minutes"
+
+      # High latency
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(prediction_latency_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High prediction latency"
+          description: "95th percentile latency is {{ $value }}s"
+
+  - name: drift_alerts
+    interval: 1h
+    rules:
+      # Feature drift detected
+      - alert: FeatureDrift
+        expr: feature_drift_score > 0.1
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Feature drift detected"
+          description: "Feature {{ $labels.feature }} drift score: {{ $value }}"
+
+  - name: model_alerts
+    interval: 30s
+    rules:
+      # Low prediction confidence
+      - alert: LowModelConfidence
+        expr: rate(predictions_total{confidence="low"}[10m]) / rate(predictions_total[10m]) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of low-confidence predictions"
+          description: "{{ $value | humanizePercentage }} of predictions have low confidence"
+
+      # Imbalanced predictions
+      - alert: PredictionImbalance
+        expr: |
+          abs(
+            rate(predictions_total{outcome="survived"}[10m]) / 
+            rate(predictions_total[10m]) - 0.6
+          ) > 0.15
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prediction distribution has shifted"
+          description: "Prediction distribution differs from training baseline"

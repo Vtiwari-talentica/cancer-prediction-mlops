@@ -1,0 +1,125 @@
+# Project Configuration
+
+project:
+  name: cancer-prediction
+  version: 1.0.0
+  description: Cancer Survival Prediction MLOps Project
+
+paths:
+  raw_data: data/raw/data.csv
+  processed_data: data/processed/
+  models: models/saved_models/
+  artifacts: models/artifacts/
+  logs: logs/
+
+data:
+  test_size: 0.2
+  validation_size: 0.1
+  random_state: 42
+
+features:
+  numerical:
+    - Age
+    - Tumor_Size_mm
+    - Healthcare_Costs
+    - Incidence_Rate_per_100K
+    - Mortality_Rate_per_100K
+  
+  categorical:
+    - Country
+    - Gender
+    - Cancer_Stage
+    - Family_History
+    - Smoking_History
+    - Alcohol_Consumption
+    - Obesity_BMI
+    - Diet_Risk
+    - Physical_Activity
+    - Diabetes
+    - Inflammatory_Bowel_Disease
+    - Genetic_Mutation
+    - Screening_History
+    - Early_Detection
+    - Treatment_Type
+    - Survival_5_years
+    - Urban_or_Rural
+    - Economic_Classification
+    - Healthcare_Access
+    - Insurance_Status
+  
+  target: Survival_Prediction
+  
+  drop_columns:
+    - Patient_ID
+
+preprocessing:
+  handle_missing: mean  # mean, median, mode, drop
+  scaling: standard  # standard, minmax, robust
+  encoding: onehot  # onehot, label, target
+
+model:
+  algorithms:
+    - logistic_regression
+    - random_forest
+    - xgboost
+    - lightgbm
+  
+  hyperparameters:
+    logistic_regression:
+      C: [0.1, 1.0, 10.0]
+      max_iter: [1000]
+      solver: [lbfgs, liblinear]
+    
+    random_forest:
+      n_estimators: [100, 200, 300]
+      max_depth: [10, 20, 30, null]
+      min_samples_split: [2, 5, 10]
+      class_weight: [balanced, null]
+    
+    xgboost:
+      n_estimators: [100, 200, 300]
+      max_depth: [3, 5, 7]
+      learning_rate: [0.01, 0.1, 0.3]
+      scale_pos_weight: [1, 2]
+    
+    lightgbm:
+      n_estimators: [100, 200, 300]
+      max_depth: [3, 5, 7, -1]
+      learning_rate: [0.01, 0.1, 0.3]
+      num_leaves: [31, 50, 100]
+
+training:
+  cv_folds: 5
+  scoring: roc_auc
+  n_trials: 50  # for Optuna
+  early_stopping_rounds: 50
+
+mlflow:
+  tracking_uri: ./mlruns
+  experiment_name: cancer_prediction
+  artifact_location: ./mlartifacts
+
+api:
+  title: Cancer Prediction API
+  description: API for cancer survival prediction
+  version: 1.0.0
+  host: 0.0.0.0
+  port: 8000
+
+monitoring:
+  enable_prometheus: true
+  metrics_port: 8001
+  log_level: INFO
+  drift_detection: true
+  performance_threshold: 0.75
+  drift_threshold: 0.05  # p-value for statistical tests
+  performance_degradation_threshold: 0.02  # 2% degradation triggers retraining
+
+# Continuous Training Configuration
+continuous_training:
+  enabled: true
+  auto_deploy: false  # Set true for automatic deployment
+  drift_check_interval: 86400  # 24 hours
+  min_samples_for_retrain: 1000
+  retraining_schedule: "0 2 * * *"  # Daily at 2 AM (cron format)
+

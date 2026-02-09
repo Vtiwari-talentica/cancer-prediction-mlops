@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # API Service v1 (Stable - 70% traffic)
+  api-v1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: api-v1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../models:/app/models
+      - ../configs:/app/configs
+      - ../logs:/app/logs
+      - ../data:/app/data
+    environment:
+      - MODEL_PATH=/app/models
+      - LOG_LEVEL=INFO
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MODEL_VERSION=v1
+    depends_on:
+      - mlflow
+    networks:
+      - cancer-prediction-net
+    restart: unless-stopped
+
+  # Model Service v2 (Canary - 30% traffic)
+  model-v2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.model-v2
+    container_name: model-v2
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../models:/app/models
+      - ../configs:/app/configs
+      - ../logs:/app/logs
+      - ../data:/app/data
+    environment:
+      - MODEL_PATH=/app/models
+      - LOG_LEVEL=INFO
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MODEL_VERSION=v2
+    depends_on:
+      - mlflow
+    networks:
+      - cancer-prediction-net
+    restart: unless-stopped
+
+  # Canary Router (70/30 Traffic Split)
+  canary-router:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.canary-router
+    container_name: canary-router
+    ports:
+      - "8888:8888"
+    environment:
+      - API_V1_URL=http://api-v1:8000
+      - MODEL_V2_URL=http://model-v2:8080
+      - CANARY_RATIO=0.30
+    depends_on:
+      - api-v1
+      - model-v2
+    networks:
+      - cancer-prediction-net
+    restart: unless-stopped
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../mlruns:/mlflow/mlruns
+      - ../mlartifacts:/mlflow/mlartifacts
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/mlruns --default-artifact-root /mlflow/mlartifacts
+    networks:
+      - cancer-prediction-net
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../configs/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - cancer-prediction-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - cancer-prediction-net
+    restart: unless-stopped
+
+networks:
+  cancer-prediction-net:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

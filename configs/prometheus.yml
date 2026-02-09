@@ -1,0 +1,39 @@
+# Prometheus configuration for monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # API v1 metrics
+  - job_name: 'api-v1'
+    static_configs:
+      - targets: ['api-v1:8000']
+    metrics_path: '/metrics'
+
+  # Model v2 metrics
+  - job_name: 'model-v2'
+    static_configs:
+      - targets: ['model-v2:8080']
+    metrics_path: '/metrics'
+
+  # Canary router metrics
+  - job_name: 'canary-router'
+    static_configs:
+      - targets: ['canary-router:8888']
+    metrics_path: '/metrics'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+# Alerting rules
+rule_files:
+  - 'alerts.yml'
+
+# Alert manager (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']

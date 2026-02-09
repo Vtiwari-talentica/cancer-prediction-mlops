@@ -1,0 +1,21 @@
+# Use this for local development without all services
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cancer-prediction-api-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../src:/app/src
+      - ../models:/app/models
+      - ../configs:/app/configs
+      - ../logs:/app/logs
+    environment:
+      - MODEL_PATH=/app/models/saved_models
+      - LOG_LEVEL=DEBUG
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped

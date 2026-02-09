@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Data (too large for Docker context)
+data/raw/*.csv
+data/processed/*.csv
+
+# Logs
+logs/*.log
+logs/drift_reports/*.json
+
+# MLflow artifacts (will be generated)
+mlruns/
+mlartifacts/
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentation (not needed in container)
+*.md
+docs/
+
+# CI/CD
+.github/
